@@ -25,7 +25,7 @@ our @EXPORT = qw(
 	&debug &debug_response &debug_request &trim &datetoepoch
 );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 # Preloaded methods go here.
