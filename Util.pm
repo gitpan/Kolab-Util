@@ -1,73 +1,153 @@
 package Kolab::Util;
 
+##
+##  Copyright (c) 2003  Code Fusion cc
+##
+##    Writen by Stuart Bingë  <s.binge@codefusion.co.za>
+##
+##  This  program is free  software; you can redistribute  it and/or
+##  modify it  under the terms of the GNU  General Public License as
+##  published by the  Free Software Foundation; either version 2, or
+##  (at your option) any later version.
+##
+##  This program is  distributed in the hope that it will be useful,
+##  but WITHOUT  ANY WARRANTY; without even the  implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+##  General Public License for more details.
+##
+##  You can view the  GNU General Public License, online, at the GNU
+##  Project's homepage; see <http://www.gnu.org/licenses/gpl.html>.
+##
+
 use 5.008;
 use strict;
 use warnings;
+use IO::File;
 
 require Exporter;
 
 our @ISA = qw(Exporter);
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
+our %EXPORT_TAGS = (
+    'all' => [ qw(
 
-# This allows declaration	use Kolab::Util ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+    ) ]
+);
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(
-	&debug &debug_response &debug_request &trim &datetoepoch
+    &trim
+    &ldapDateToEpoch
+    &readConfig
+    &readList
 );
 
-our $VERSION = '0.02';
+our $VERSION = '0.9';
 
-
-# Preloaded methods go here.
-sub debug
+sub trim
 {
-   #my $a = shift;
-   #print "$a\n";
-   #dolog($a);
+    my $string = shift;
+
+    if (defined $string) {
+        $string =~ s/^\s+//g;
+        $string =~ s/\s+$//g;
+        chomp $string;
+    }
+
+    return $string;
 }
 
-sub debug_response
-{ 
-   #my $p = shift;
-   #$Data::Dumper::Indent=1;
-   #$Data::Dumper::Quotekeys=0;
-   #print Dumper($LDAPResponse->decode($p));
-}
-
-sub debug_request
+sub ldapDateToEpoch
 {
-   #my $p = shift;
-   #$Data::Dumper::Indent=1;
-   #$Data::Dumper::Quotekeys=0;
-   #print Dumper($LDAPRequest->decode($p));
+    my $ldapdate = shift;
+
+    (my $y, my $m, my $d, my $h, my $mi, my $se) = unpack('A4A2A2A2A2A2', $ldapdate);
+
+    return timelocal($se, $mi, $h, $d, $m, $y);
 }
 
-# we will often trim strings and kill leading and trailing whitespace
-sub trim {
-  my $string = $_[0];
-  if (defined $string) {
-    $string =~ s/^\s+//g;
-    $string =~ s/\s+$//g;
-    chomp $string;
-  }
-  return $string;
+sub readConfig
+{
+    my $ref = shift;
+    my (%cfg, $file);
+
+    if (ref($ref) eq 'HASH') {
+        %cfg = %$ref;
+        $file = shift || 0;
+    } else {
+        $file = $ref;
+    }
+
+    if (!$file) { return %cfg; }
+
+    my $sep = shift || ':';
+    $sep = '\s' if ($sep eq ' ' || $sep eq '#');
+
+    my $fd;
+    if (!($fd = IO::File->new($file, 'r'))) { return %cfg; }
+
+    foreach (<$fd>) {
+        if (/^([^$sep#]+)$sep+([^#]*)/) {
+            $cfg{trim($1)} = trim($2);
+        }
+    }
+
+    return %cfg;
 }
 
-sub datetoepoch {
-   my $ldapdate = shift;
-   (my $y, my $m, my $d, my $h, my $mi, my $se) = unpack("A4A2A2A2A2A2",$ldapdate);
-   return timelocal($se,$mi,$h,$d,$m,$y);
-}
+sub readList
+{
+    my @list;
 
+    my $file = shift || 0;
+    if (!$file) { return @list; }
+
+    my $fd;
+    if (!($fd = IO::File->new($file, 'r'))) { return @list; }
+
+    foreach (<$fd>) {
+        if (/^([^#]+)/) {
+            my $temp = trim($1);
+            next if $temp eq '';
+            push(@list, ($temp));
+        }
+    }
+
+    return @list;
+}
 
 1;
+__END__
+# Below is stub documentation for your module. You'd better edit it!
+
+=head1 NAME
+
+Kolab::Util - Perl extension for general utility functions
+
+=head1 ABSTRACT
+
+  Kolab::Util contains several basic utility functions.
+
+=head1 AUTHOR
+
+Stuart Bingë, E<lt>s.binge@codefusion.co.zaE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (c) 2003  Code Fusion cc
+
+This  program is free  software; you can redistribute  it and/or
+modify it  under the terms of the GNU  General Public License as
+published by the  Free Software Foundation; either version 2, or
+(at your option) any later version.
+
+This program is  distributed in the hope that it will be useful,
+but WITHOUT  ANY WARRANTY; without even the  implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You can view the  GNU General Public License, online, at the GNU
+Project's homepage; see <http://www.gnu.org/licenses/gpl.html>.
+
+=cut
